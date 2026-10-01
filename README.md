@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Community | Linux.do](https://img.shields.io/badge/community-Linux.do-blue.svg)](https://linux.do/)
 
-Connect [pi](https://github.com/earendil-works/pi) to one or more self-hosted [NewAPI](https://github.com/QuantumNous/new-api) gateways. This extension requires Pi Coding Agent **v0.84.0 or later**.
+Connect [pi](https://github.com/earendil-works/pi) to one or more self-hosted [NewAPI](https://github.com/QuantumNous/new-api) gateways. This extension requires Pi Coding Agent **v0.99.2 or later**.
 
 Each gateway becomes a separate, named provider in pi. The extension:
 

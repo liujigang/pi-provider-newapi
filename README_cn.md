@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![社区 | Linux.do](https://img.shields.io/badge/社区-Linux.do-blue.svg)](https://linux.do/)
 
-将 [pi](https://github.com/earendil-works/pi) 连接到一个或多个自托管的 [NewAPI](https://github.com/QuantumNous/new-api) 网关。扩展要求 Pi Coding Agent 为 **v0.84.0 或更高版本**。
+将 [pi](https://github.com/earendil-works/pi) 连接到一个或多个自托管的 [NewAPI](https://github.com/QuantumNous/new-api) 网关。扩展要求 Pi Coding Agent 为 **v0.99.2 或更高版本**。
 
 每个网关都会在 pi 中注册为独立的命名 provider。扩展可以：
 

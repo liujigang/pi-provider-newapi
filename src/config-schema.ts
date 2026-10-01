@@ -81,6 +81,7 @@ function errorMessage(error: unknown): string {
 				if (typeof item !== "object" || item === null) return [];
 				const validation = item as {
 					instancePath?: unknown;
+					schemaPath?: unknown;
 					keyword?: unknown;
 					message?: unknown;
 					params?: { additionalProperties?: unknown; requiredProperties?: unknown };
@@ -96,6 +97,7 @@ function errorMessage(error: unknown): string {
 						return required.filter((field): field is string => typeof field === "string").map((field) => `${at(field)} is required`);
 					}
 				}
+				// TypeBox reports unknown fields either directly or as a failed `false` sub-schema.
 				if (validation.keyword === "additionalProperties") {
 					const additional = validation.params?.additionalProperties;
 					if (Array.isArray(additional)) {
@@ -103,6 +105,13 @@ function errorMessage(error: unknown): string {
 							.filter((field): field is string => typeof field === "string")
 							.map((field) => `${at(field)} is not allowed`);
 					}
+				}
+				if (
+					validation.keyword === "boolean" &&
+					typeof validation.schemaPath === "string" &&
+					validation.schemaPath.endsWith("/additionalProperties")
+				) {
+					return [`${at()} is not allowed`];
 				}
 				return [`${at()} ${String(validation.message ?? "is invalid")}`];
 			});

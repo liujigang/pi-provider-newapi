@@ -52,6 +52,70 @@ async function withAgentDir(run: () => Promise<void>): Promise<void> {
 	}
 }
 
+test("refreshProviderModels: keeps the cached catalog when publish loses the generation race", async () => {
+	await withAgentDir(async () => {
+		const previousFetch = globalThis.fetch;
+		globalThis.fetch = async (input) => {
+			const url = input instanceof Request ? input.url : String(input);
+			const payload = url.endsWith("/api/ratio_config")
+				? { success: true, data: {} }
+				: { data: [{ id: "fresh-model", supported_endpoint_types: ["openai"] }] };
+			return new Response(JSON.stringify(payload), {
+				status: 200,
+				headers: { "content-type": "application/json" },
+			});
+		};
+
+		try {
+			const cached = [cachedModel("cached-model")];
+			const result = await refreshProviderModels("gw", {
+				allowNetwork: true,
+				signal: new AbortController().signal,
+				stored: { models: storedModels(cached), checkedAt: 1 },
+				// A superseding refresh has already advanced the generation.
+				publish: async () => false,
+			});
+
+			assert.deepEqual(result, cached);
+		} finally {
+			globalThis.fetch = previousFetch;
+		}
+	});
+});
+
+test("refreshProviderModels: sends the credential to both discovery requests", async () => {
+	await withAgentDir(async () => {
+		const previousFetch = globalThis.fetch;
+		const authHeaders: (string | null)[] = [];
+		globalThis.fetch = async (input, init) => {
+			const url = input instanceof Request ? input.url : String(input);
+			authHeaders.push(new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined)).get(
+				"authorization",
+			));
+			const payload = url.endsWith("/api/ratio_config")
+				? { success: true, data: {} }
+				: { data: [{ id: "fresh-model", supported_endpoint_types: ["openai"] }] };
+			return new Response(JSON.stringify(payload), {
+				status: 200,
+				headers: { "content-type": "application/json" },
+			});
+		};
+
+		try {
+			await refreshProviderModels("gw", {
+				allowNetwork: true,
+				signal: new AbortController().signal,
+				credential: { type: "api_key", key: "secret-key" },
+				publish: async () => true,
+			});
+
+			assert.deepEqual(authHeaders, ["Bearer secret-key", "Bearer secret-key"]);
+		} finally {
+			globalThis.fetch = previousFetch;
+		}
+	});
+});
+
 test("refreshProviderModels: restores context.stored without network access", async () => {
 	await withAgentDir(async () => {
 		const cached = [cachedModel("cached-model")];

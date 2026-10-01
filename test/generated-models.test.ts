@@ -7,18 +7,18 @@ import { join } from "node:path";
 import { test } from "node:test";
 
 import type { Api, Model } from "@earendil-works/pi-ai";
-import { getModels } from "@earendil-works/pi-ai/compat";
+import { getBuiltinModels } from "@earendil-works/pi-ai/providers/all";
 
 import { buildGeneratedModelsJson, writeGeneratedModelsJson } from "../src/generated-models.ts";
 
 function model(provider: string, id: string): Model<Api> {
-	const base = getModels("anthropic")[0];
+	const base = getBuiltinModels("anthropic")[0];
 	assert.ok(base, "expected at least one built-in anthropic model");
 	return { ...base, provider, id, name: id };
 }
 
 test("buildGeneratedModelsJson: emits only unknown models for configured providers", () => {
-	const known = getModels("anthropic")[0];
+	const known = getBuiltinModels("anthropic")[0];
 	assert.ok(known, "expected at least one built-in anthropic model");
 	const generated = buildGeneratedModelsJson(
 		["gw"],

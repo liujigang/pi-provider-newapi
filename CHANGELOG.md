@@ -19,8 +19,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- Require Pi v0.84.0 or newer and migrate dynamic catalog persistence to generation-checked `context.publish()`, preventing stale refreshes from overwriting newer model lists.
-- Pin the Pi SDK packages at v0.84.0 as development dependencies so local typechecking and tests use the supported extension API.
+- Require Pi v0.99.2 or newer and migrate dynamic catalog persistence to generation-checked `context.publish()`, preventing stale refreshes from overwriting newer model lists.
+- Pin the Pi SDK packages at v0.99.2 as development dependencies so local typechecking and tests use the supported extension API.
+- Declare Pi-supplied packages as `peerDependencies: "*"` and drop `typebox` from runtime dependencies, so Pi provides them instead of the package bundling a duplicate copy.
+- Read Pi's built-in model catalog through `@earendil-works/pi-ai/providers/all` instead of the deprecated `@earendil-works/pi-ai/compat` shim, and tag discovered models as `type: "chat"` for Pi's discriminated provider model configuration.
+- Fetch optional ratio metadata concurrently with the required model catalog, and send the resolved credential to both requests.
+- Keep the cached catalog when a refresh loses Pi's generation check, so a superseded refresh cannot install an older model list over a newer one.
+- Preserve field-specific configuration validation errors, including `is not allowed` for unknown fields, after TypeBox 1.3.34 changed how `additionalProperties: false` failures are reported.
 - Refactored the extension into focused `src/` modules while retaining the root `index.ts` Pi entry point and stable startup display name.
 - Split tests into focused suites under `test/` and kept internal model helpers private to the package implementation.
 - Changed unknown-model defaults to a 128,000-token context window and 32,768 maximum output tokens.

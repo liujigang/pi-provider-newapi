@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { getModels } from "@earendil-works/pi-ai/compat";
+import { getBuiltinModels } from "@earendil-works/pi-ai/providers/all";
 
 import {
 	buildProviderModels,
@@ -112,7 +112,7 @@ test("buildProviderModels: costs are derived from ratios", () => {
 });
 
 test("buildProviderModels: enriched metadata and compatibility are preserved", () => {
-	const base = getModels("deepseek")[0];
+	const base = getBuiltinModels("deepseek")[0];
 	assert.ok(base, "expected at least one built-in deepseek model");
 
 	const models = build([{ id: base.id, supportedEndpointTypes: [] }]);

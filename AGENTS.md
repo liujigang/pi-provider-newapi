@@ -1,6 +1,6 @@
 # AGENTS.md
 
-`pi-provider-newapi` is a [pi](https://github.com/earendil-works/pi) coding-agent extension that exposes self-hosted [NewAPI](https://github.com/QuantumNous/new-api) gateways as pi model providers. It targets **pi SDK v0.84.0+** (`@earendil-works/pi-ai` and `@earendil-works/pi-coding-agent`).
+`pi-provider-newapi` is a [pi](https://github.com/earendil-works/pi) coding-agent extension that exposes self-hosted [NewAPI](https://github.com/QuantumNous/new-api) gateways as pi model providers. It targets **pi SDK v0.99.2+** (`@earendil-works/pi-ai` and `@earendil-works/pi-coding-agent`).
 
 `index.ts` is the single Pi entry point and exports only the extension factory. Implementation modules live under `src/`; focused tests under `test/` import those modules directly. There is no build step — pi loads the `.ts` entry directly (`package.json` → `pi.extensions`).
 
@@ -19,7 +19,7 @@ Interactive smoke test against the source checkout (needs a TTY; will hang in no
 
 Node's strip-only TS loader powers `npm test`: **no TS-only runtime syntax** (no `enum`, no parameter properties, no decorators). Keep types erasable.
 
-## Hard constraints (v0.84.0 contract)
+## Hard constraints (v0.99.2 contract)
 
 - **Pi owns credentials.** Never read/write `auth.json`, never touch the removed `modelRegistry.authStorage`. Users enter keys via `/login <name>` and remove them via `/logout <name>`.
 - **Providers register once with `models: []` + `refreshModels(context)`.** The empty catalog is intentional — it makes the provider selectable in `/login` before any model is discovered, which bootstraps credential entry. Do not re-`registerProvider` per discovery.
@@ -35,9 +35,9 @@ Data flow: **config + Pi credential → discover → enrich → route API → bu
 - **`migration.ts`**: owns legacy configuration compatibility. `getConfigVersion()` unifies the active path and on-disk schema version; migration archives `<agentDir>/extensions/provider-newapi.json`, upgrades TypeBox schema `0` files to schema `1`, and directs users to `/newapi-config-recover` whenever it creates a backup.
 - **`prompts/newapi-config-recover.md`**: guides agents through reconciling valid, legacy, or malformed config backups into the canonical extension config, merging `models-generated.json` templates into Pi's `models.json`, and preserving existing values; backup deletion requires explicit user confirmation before `/reload`.
 - **`http.ts`** (`fetchWithTimeout`): combines a local timeout with `context.signal` via `AbortSignal.any`; throws a `NewAPIError` tagged `aborted | timeout | auth | http | payload | network`.
-- **`models.ts`** (pure, exported, tested): parses `/v1/models` and ratio configuration, enriches models from Pi's built-in catalog, applies regex `modelApiOverrides`, computes costs, and builds provider model configs. Metadata and compatibility overrides belong to Pi's `models.json`.
+- **`models.ts`** (pure, exported, tested): parses `/v1/models` and ratio configuration, enriches models from Pi's built-in catalog (`@earendil-works/pi-ai/providers/all`), applies regex `modelApiOverrides`, computes costs, and builds chat-model provider configs (`ProviderChatModelConfig`, the `type: "chat"` branch of Pi's `ProviderModelConfig` union). Metadata and compatibility overrides belong to Pi's `models.json`.
 - **`generated-models.ts`**: builds unknown-model `modelOverrides` templates and atomically writes `<agentDir>/models-generated.json`; it never edits Pi's user-owned `models.json`.
-- **`discovery.ts`**: fetches ratio config (best-effort) + `/v1/models` (required), reads the API key from `context.credential`, calls `buildProviderModels`, and implements `context.stored` cache fallback plus generation-checked persistence through `context.publish()`.
+- **`discovery.ts`**: fetches ratio config (best-effort) and `/v1/models` (required) concurrently, reads the API key from `context.credential` and sends it to both requests, calls `buildProviderModels`, and implements `context.stored` cache fallback plus generation-checked persistence through `context.publish()` — a refresh that loses the generation race returns the cached catalog instead of its own result.
 - **`provider.ts`**: registers configured NewAPI providers with `models: []` and dynamic `refreshModels` callbacks.
 - **`commands.ts`**: registers the add/remove/list commands.
 - **`extension.ts`**: composition root for startup provider registration, onboarding, and commands.
@@ -53,6 +53,6 @@ Data flow: **config + Pi credential → discover → enrich → route API → bu
 ## Conventions
 
 - Use pnpm for all package operations, including dependency management, scripts, versioning, packing, and publishing; do not use npm for release operations.
-- Tabs for indentation; TypeBox is the only direct runtime dependency beyond the two pi peer packages + Node built-ins.
+- Tabs for indentation; the extension has no runtime dependencies beyond Node built-ins. Pi supplies `@earendil-works/pi-ai`, `@earendil-works/pi-coding-agent`, and `typebox`, so declare all three as `peerDependencies: "*"` and keep only pinned versions in `devDependencies`.
 - Extract pure, deterministic logic as exported functions and unit-test it; keep I/O (fetch, fs, Pi APIs) thin.
 - Keep `package.json` `version` and the top `CHANGELOG.md` entry in sync; update both READMEs (`README.md` + `README_cn.md`) when user-facing behavior changes.

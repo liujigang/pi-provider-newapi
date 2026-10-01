@@ -1,6 +1,6 @@
 /** Registers configured NewAPI gateways as dynamic Pi model providers. */
 
-import { getProviders } from "@earendil-works/pi-ai/compat";
+import { getBuiltinProviders } from "@earendil-works/pi-ai/providers/all";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { refreshProviderModels } from "./discovery.ts";
 import { DEFAULT_MODEL_API } from "./constants.ts";
@@ -28,7 +28,7 @@ export function registerConfiguredProviders(
 	config: NewAPIConfig,
 	state: ProviderRuntimeState,
 ): void {
-	const builtinProviderIds = getProviders() as unknown as string[];
+	const builtinProviderIds = getBuiltinProviders() as readonly string[];
 	for (const [name, entry] of Object.entries(config.providers)) {
 		// Invalid or colliding entries are isolated so other configured gateways still register.
 		if (builtinProviderIds.includes(name)) {

@@ -26,27 +26,27 @@ export async function refreshProviderModels(
 
 	try {
 		const baseUrl = entry.baseUrl.replace(/\/+$/, "");
-		// Ratio metadata improves cost reporting but is not required for model discovery.
-		let ratios = EMPTY_RATIOS;
-		try {
-			const ratioResponse = await fetchWithTimeout(`${baseUrl}/api/ratio_config`, {
-				signal: context.signal,
-				timeoutMs: RATIO_CONFIG_FETCH_TIMEOUT_MS,
-			});
-			if (ratioResponse.ok) ratios = parseRatioConfig(await ratioResponse.json());
-		} catch (err) {
-			if (err instanceof NewAPIError && err.code === "aborted") throw err;
-			console.warn(
-				`NewAPI [${providerName}]: /api/ratio_config unavailable — ${err instanceof Error ? err.message : String(err)}`,
-			);
-		}
-
 		const headers: Record<string, string> = {};
 		if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
-		const modelsResponse = await fetchWithTimeout(`${baseUrl}/v1/models`, {
+		// Cost metadata is optional, so fetch it alongside the required model catalog.
+		const ratiosPromise = fetchWithTimeout(`${baseUrl}/api/ratio_config`, {
+			headers,
+			signal: context.signal,
+			timeoutMs: RATIO_CONFIG_FETCH_TIMEOUT_MS,
+		})
+			.then(async (response) => (response.ok ? parseRatioConfig(await response.json()) : EMPTY_RATIOS))
+			.catch((err) => {
+				if (err instanceof NewAPIError && err.code === "aborted") throw err;
+				console.warn(
+					`NewAPI [${providerName}]: /api/ratio_config unavailable — ${err instanceof Error ? err.message : String(err)}`,
+				);
+				return EMPTY_RATIOS;
+			});
+		const modelsPromise = fetchWithTimeout(`${baseUrl}/v1/models`, {
 			headers,
 			signal: context.signal,
 		});
+		const [ratios, modelsResponse] = await Promise.all([ratiosPromise, modelsPromise]);
 		if (modelsResponse.status === 401 || modelsResponse.status === 403) {
 			throw new NewAPIError(
 				"auth",
@@ -72,13 +72,13 @@ export async function refreshProviderModels(
 		}
 
 		if (context.signal.aborted) return cachedModels;
-		await context.publish({
+		const published = await context.publish({
 			persist: {
 				models: models as unknown as Model<Api>[],
 				checkedAt: Date.now(),
 			},
 		});
-		return models;
+		return published ? models : cachedModels;
 	} catch (err) {
 		// Discovery failures are isolated to this refresh; Pi can continue with cached models.
 		if (err instanceof NewAPIError && err.code === "aborted") return cachedModels;

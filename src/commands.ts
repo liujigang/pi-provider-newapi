@@ -2,7 +2,7 @@
 
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { getProviders } from "@earendil-works/pi-ai/compat";
+import { getBuiltinProviders } from "@earendil-works/pi-ai/providers/all";
 import { getAgentDir, type ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { readConfig, updateConfig } from "./config.ts";
 import { REACHABILITY_FETCH_TIMEOUT_MS } from "./constants.ts";
@@ -41,7 +41,7 @@ export function registerCommands(pi: ExtensionAPI, state: ProviderRuntimeState):
 				return;
 			}
 
-			const builtins = getProviders() as unknown as string[];
+			const builtins = getBuiltinProviders() as readonly string[];
 			if (builtins.includes(name)) {
 				ctx.ui.notify(`Cannot add "${name}": name collides with a built-in pi provider.`, "error");
 				return;

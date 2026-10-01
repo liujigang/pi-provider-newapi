@@ -1,6 +1,6 @@
 /** Shared constants for configuration, discovery, API routing, and model defaults. */
 
-import type { BuiltinProvider } from "@earendil-works/pi-ai/compat";
+import type { BuiltinProvider } from "@earendil-works/pi-ai/providers/all";
 import type { NewAPIModelApi } from "./types.ts";
 
 export const CONFIG_FILENAME = "provider-newapi.json";

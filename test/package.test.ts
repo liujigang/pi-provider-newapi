@@ -4,6 +4,18 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
+test("package delegates Pi-supplied packages to the host", () => {
+	const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf-8")) as {
+		peerDependencies?: Record<string, string>;
+		dependencies?: Record<string, string>;
+	};
+
+	for (const name of ["@earendil-works/pi-ai", "@earendil-works/pi-coding-agent", "typebox"]) {
+		assert.equal(packageJson.peerDependencies?.[name], "*", `${name} must be a wildcard peer dependency`);
+		assert.equal(packageJson.dependencies?.[name], undefined, `${name} must not be bundled as a runtime dependency`);
+	}
+});
+
 test("package exposes the NewAPI config recovery prompt", () => {
 	const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf-8")) as {
 		pi?: { prompts?: string[] };

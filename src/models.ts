@@ -1,7 +1,7 @@
 /** Parses, enriches, routes, and prices NewAPI model definitions for Pi. */
 
 import type { Api, Model } from "@earendil-works/pi-ai";
-import { getModels, type BuiltinProvider } from "@earendil-works/pi-ai/compat";
+import { getBuiltinModels, type BuiltinProvider } from "@earendil-works/pi-ai/providers/all";
 import type { ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import { NewAPIError } from "./http.ts";
 import {
@@ -55,7 +55,7 @@ function getEnrichmentLookup(): Map<string, ModelLookupItem> {
 	for (const provider of ENRICHMENT_PROVIDERS) {
 		let providerModels: Model<Api>[];
 		try {
-			providerModels = getModels(provider as BuiltinProvider) as Model<Api>[];
+			providerModels = getBuiltinModels(provider as BuiltinProvider) as Model<Api>[];
 		} catch {
 			continue;
 		}
@@ -87,6 +87,8 @@ function getEnrichmentLookup(): Map<string, ModelLookupItem> {
 export function isEnrichedModelId(modelId: string): boolean {
 	return getEnrichmentLookup().has(modelId.replaceAll(".", "-").toLowerCase());
 }
+
+type ProviderChatModelConfig = Extract<ProviderModelConfig, { reasoning: boolean }>;
 
 export interface ModelApiOverrideRule {
 	pattern: string;
@@ -184,12 +186,12 @@ export function buildProviderModels(params: {
 	apiModels: NewAPIModelEntry[];
 	ratios: Ratios;
 	modelApiOverrides: Record<string, string>;
-}): ProviderModelConfig[] {
+}): ProviderChatModelConfig[] {
 	const { providerName, baseUrl, apiModels, ratios, modelApiOverrides } = params;
 	const enrichmentLookup = getEnrichmentLookup();
 	const { rules, errors } = compileModelApiOverrides(modelApiOverrides);
 	for (const error of errors) console.warn(`NewAPI [${providerName}]: modelApiOverrides ${error} — ignoring it.`);
-	const models: ProviderModelConfig[] = [];
+	const models: ProviderChatModelConfig[] = [];
 
 	for (const modelEntry of apiModels) {
 		const normalizedId = modelEntry.id.replaceAll(".", "-").toLowerCase();
@@ -236,6 +238,7 @@ export function buildProviderModels(params: {
 		const createCacheRatio = findRatio(modelEntry.id, ratios.createCacheRatios) ?? 0;
 
 		models.push({
+			type: "chat",
 			id: modelEntry.id,
 			name,
 			api,
