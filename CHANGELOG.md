@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses semantic versioning.
 
+## [0.0.2] - 2026-10-01
+
+### Changed
+
+- Rewrote both READMEs around the first-run path: installation, quick start, commands, model discovery and caching, cost calculation, configuration, API routing, model metadata, and config recovery.
+- Documented how model costs derive from NewAPI ratio metadata, including ratio key matching, missing-ratio fallbacks, and the fixed group rate.
+
+### Removed
+
+- Removed the v0.4 migration guide and the legacy configuration narrative from the READMEs; migration details remain in the 0.0.1 entry below.
+
 ## [0.0.1] - 2026-10-01
 
 ### Breaking Changes

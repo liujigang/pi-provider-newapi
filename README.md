@@ -66,6 +66,10 @@ Pi stores the credential through its configured credential store, normally `<age
 | `/newapi-generate-models-json` | Generate editable pi `modelOverrides` templates for discovered models that pi does not already know. |
 | `/newapi-config-recover` | Recover settings from config backups and merge `models-generated.json` into Pi's `models.json`, then confirm cleanup and reload. |
 
+Provider names cannot be empty, contain spaces or slashes, collide with a built-in pi provider, or duplicate an existing entry.
+
+`/newapi-config-recover` is a prompt template: it expands into instructions for the agent instead of running extension code.
+
 ### Removing a provider
 
 Pi does not expose credential deletion through the extension API. To remove both the credential and the provider configuration, run these commands in order:
@@ -85,14 +89,38 @@ Pi controls when dynamic provider catalogs are refreshed:
 - `pi update --models` forces an immediate refresh when you do not want to wait for the background update.
 - After a successful refresh, pi stores the provider catalog in `<agentDir>/models-store.json`.
 - When network access is disabled, the extension restores the last successful catalog without contacting NewAPI.
-- If a refresh fails, the last good catalog remains available. `/api/ratio_config` is optional, but `/v1/models` must succeed to produce a fresh catalog.
-- Requests allow 15 seconds for `/v1/models`, 10 seconds for optional ratio metadata, and 5 seconds for the add-provider reachability check. Pi's global HTTP dispatcher still provides proxy routing and idle-timeout handling underneath these local limits.
+- A failed refresh keeps the last good catalog, and an empty `/v1/models` response is treated as a failed refresh when a catalog is already cached. `/api/ratio_config` is optional, but `/v1/models` must succeed to produce a fresh catalog.
+- A `401` or `403` from `/v1/models` is reported as a credential problem. Run `/login <name>` again to correct the API key.
+
+Requests allow 15 seconds for `/v1/models`, 10 seconds for optional ratio metadata, and 5 seconds for the add-provider reachability check. Pi's global HTTP dispatcher still provides proxy routing and idle-timeout handling underneath these local limits.
 
 Catalog updates use pi's generation-checked publishing API, so an older, slower refresh cannot overwrite newer model data. API keys are never included in the catalog store.
 
+## Cost calculation
+
+Costs come from NewAPI's `/api/ratio_config`, which is fetched alongside the model catalog. Ratios are matched against the model ID by exact key, then case-insensitively, then by treating a key as a prefix of the model ID, so a `gpt-4o` key also covers `gpt-4o-2025-01-01`.
+
+Cost per million tokens is `ratio x 2 USD`, because NewAPI counts 500,000 quota per USD:
+
+| Cost field | Ratio used |
+|---|---|
+| Input | `model_ratio` |
+| Output | `model_ratio x completion_ratio` |
+| Cache read | `model_ratio x cache_ratio` |
+| Cache write | `model_ratio x create_cache_ratio` |
+
+Missing ratios fall back to `0` for `model_ratio`, `cache_ratio`, and `create_cache_ratio`, and to `1` for `completion_ratio`, so a gateway without ratio metadata reports zero cost rather than incorrect costs. Costs use a fixed group rate of `1.0`; per-group multipliers from `group_ratio` are not applied.
+
 ## Configuration
 
-The add and remove commands manage `<agentDir>/extension-settings/provider-newapi.json`. Edit this file directly only when you need API routing overrides:
+The add and remove commands manage `<agentDir>/extension-settings/provider-newapi.json`. The default `<agentDir>` is:
+
+| OS | Path |
+|---|---|
+| Linux / macOS | `~/.pi/agent` |
+| Windows | `%USERPROFILE%\.pi\agent` |
+
+Edit this file directly only when you need API routing overrides:
 
 ```json
 {
@@ -109,22 +137,18 @@ The add and remove commands manage `<agentDir>/extension-settings/provider-newap
       "baseUrl": "https://gw2.example.com",
       "modelApiOverrides": {}
     }
-  },
-  "settings": {
-    "onboardingWarnCountdown": 3
   }
 }
 ```
 
-- **`version`** is the sole configuration schema discriminator. A missing value or `0` selects schema `0`; `1` selects the current schema. Schema validation never changes that selection. Invalid fields are reported by their full paths, while files declaring a newer schema are preserved and rejected until the extension is upgraded.
+- **`version`** selects the configuration schema; `1` is current. A file declaring a newer schema is preserved and rejected until the extension is upgraded.
 - **`providers`** contains one entry per NewAPI gateway. Each key becomes the provider ID shown by pi.
 - **`baseUrl`** is the gateway root URL, without `/v1`. Trailing slashes are removed automatically.
-- **`modelApiOverrides`** is optional; omitting it is equivalent to an empty object. When present, it maps JavaScript regular expressions to pi APIs. Rules are checked in JSON order, and the first match wins. Supported values are `anthropic-messages`, `openai-completions`, and `openai-responses`. Invalid regular expressions are ignored with a warning; unsupported API values fail schema validation and trigger the timestamped config backup described below.
-- **`settings.onboardingWarnCountdown`** is internal state that limits the no-provider reminder to three startups.
+- **`modelApiOverrides`** is optional; omitting it is equivalent to an empty object. When present, it maps JavaScript regular expressions to pi APIs. Rules are checked in JSON order, and the first match wins. Supported values are `anthropic-messages`, `openai-completions`, and `openai-responses`. Invalid regular expressions are ignored with a warning; unsupported API values fail schema validation and trigger the config backup described below.
 
 ### API routing
 
-By default, the extension combines pi's metadata with each model's `supported_endpoint_types` from NewAPI. A matching `modelApiOverrides` rule takes precedence over both.
+By default, the extension combines pi's metadata with each model's `supported_endpoint_types` from NewAPI. A matching `modelApiOverrides` rule takes precedence over both. When a gateway advertises several usable APIs, the extension prefers `anthropic-messages`, then `openai-responses`, then `openai-completions`.
 
 | Model API | Base URL passed to pi |
 |---|---|
@@ -157,6 +181,8 @@ Pi owns model metadata and compatibility overrides. Put them in `<agentDir>/mode
 
 Pi applies exact model-ID overrides after discovery. Provider-level `compat` affects every model on the gateway; place `compat` inside a model override when it should apply to only one model.
 
+Models that pi already knows inherit its display name, capabilities, context window, and compatibility metadata. The lookup ignores provider prefixes and treats dots as dashes, so `openai/gpt-4o` matches `gpt-4o`. The first match across pi's built-in catalogs wins, covering deepseek, zai, google, anthropic, minimax, moonshotai, xiaomi, openai, and vercel-ai-gateway. Models pi does not know stay usable with conservative defaults: text-only input, no reasoning, a 128,000-token context window, and 32,768 maximum output tokens.
+
 For models that are not in pi's built-in catalog, run:
 
 ```text
@@ -165,26 +191,15 @@ For models that are not in pi's built-in catalog, run:
 
 The command refreshes the available catalogs and writes templates to `<agentDir>/models-generated.json`. It does not modify pi's user-owned `models.json`: copy the relevant provider and model entries into that file and merge them with anything already there. If a provider has no available catalog yet, open `/model` first and then rerun the generator.
 
-### Migrating from v0.4
+### Config backups and recovery
 
-The extension no longer reads its former `modelOverrides` or `settings.sendSessionAffinityHeaders` fields. Move old `api` choices to `modelApiOverrides`—use a pattern such as `^model-id$` for an exact match—and move model metadata and `compat` settings to pi's `models.json` as shown above.
-
-The default `<agentDir>` is:
-
-| OS | Path |
-|---|---|
-| Linux / macOS | `~/.pi/agent` |
-| Windows | `%USERPROFILE%\.pi\agent` |
-
-On first use, an existing `<agentDir>/extensions/provider-newapi.json` is moved out of the legacy directory and archived under `extension-settings` as `provider-newapi.YYMMDD-HHMMSS.json.bak`; supported settings are migrated into a new canonical config. The same timestamped backup is created before migrating schema `0` files. Schema `0` includes the former `modelOverrides` field: move its metadata and compatibility values from the backup into pi's `models.json`, and move old API choices into `modelApiOverrides`. A file declaring version `1` is always validated as schema `1`; v0-only fields in it are validation errors rather than a reason to reclassify it.
-
-If JSON parsing or config schema validation fails, the invalid file is moved to the same timestamped backup format and replaced with a valid empty configuration. Whenever a backup is created, the warning uses this recovery instruction:
+A configuration file that fails JSON parsing or schema validation is moved to `<agentDir>/extension-settings/provider-newapi.YYMMDD-HHMMSS.json.bak` and replaced with a valid empty configuration. Whenever this happens the warning says:
 
 ```text
 Run /newapi-config-recover to recover settings from config backups.
 ```
 
-The prompt examines valid, legacy, and malformed backups, and merges `models-generated.json` templates into Pi's `models.json` without overwriting existing values. It merges recoverable extension settings and Pi-owned model overrides, and preserves ambiguous fragments for manual review. It does not delete backups immediately. After reconciliation, it lists the recovered backups and asks for explicit confirmation before deleting those exact files and directing you to run `/reload`.
+The prompt examines the backups, merges recoverable extension settings and `models-generated.json` templates into pi's `models.json` without overwriting existing values, and preserves ambiguous fragments for manual review. It lists the recovered backups and asks for explicit confirmation before deleting those exact files and directing you to run `/reload`.
 
 ## Multiple gateways
 
@@ -205,4 +220,8 @@ pnpm run typecheck
 pnpm test
 ```
 
-The same typecheck and test suites run in GitHub Actions for pushes and pull requests.
+The tests run on Node's strip-only TypeScript loader, so keep types erasable: no `enum`, parameter properties, or decorators. The same typecheck and test suites run in GitHub Actions on Node 24 for pushes and pull requests.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
