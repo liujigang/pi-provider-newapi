@@ -1,8 +1,8 @@
-# pi-provider-newapi
+# pi-newapi
 
-[![CI](https://github.com/ttimasdf/pi-provider-newapi/actions/workflows/ci.yml/badge.svg)](https://github.com/ttimasdf/pi-provider-newapi/actions/workflows/ci.yml)
-[![pi package catalog](https://img.shields.io/badge/pi-package%20catalog-5B5BD6.svg)](https://pi.dev/packages/pi-provider-newapi)
-[![npm](https://img.shields.io/npm/v/pi-provider-newapi.svg)](https://www.npmjs.com/package/pi-provider-newapi)
+[![CI](https://github.com/liujigang/pi-provider-newapi/actions/workflows/ci.yml/badge.svg)](https://github.com/liujigang/pi-provider-newapi/actions/workflows/ci.yml)
+[![pi package catalog](https://img.shields.io/badge/pi-package%20catalog-5B5BD6.svg)](https://pi.dev/packages/pi-newapi)
+[![npm](https://img.shields.io/npm/v/pi-newapi.svg)](https://www.npmjs.com/package/pi-newapi)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Community | Linux.do](https://img.shields.io/badge/community-Linux.do-blue.svg)](https://linux.do/)
 
@@ -18,20 +18,20 @@ Each gateway becomes a separate, named provider in pi. The extension:
 
 Pi remains responsible for credentials. The extension never copies API keys into its configuration, model definitions, logs, or cached catalogs.
 
-**[中文文档](https://github.com/ttimasdf/pi-provider-newapi/blob/main/README_cn.md)**
+**[中文文档](https://github.com/liujigang/pi-provider-newapi/blob/main/README_cn.md)**
 
 ## Installation
 
 Install from npm:
 
 ```bash
-pi install npm:pi-provider-newapi
+pi install npm:pi-newapi
 ```
 
 Or install directly from GitHub:
 
 ```bash
-pi install git:github.com/ttimasdf/pi-provider-newapi
+pi install git:github.com/liujigang/pi-provider-newapi
 ```
 
 ## Quick start

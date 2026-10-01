@@ -1,8 +1,8 @@
-# pi-provider-newapi
+# pi-newapi
 
-[![CI](https://github.com/ttimasdf/pi-provider-newapi/actions/workflows/ci.yml/badge.svg)](https://github.com/ttimasdf/pi-provider-newapi/actions/workflows/ci.yml)
-[![pi package catalog](https://img.shields.io/badge/pi-package%20catalog-5B5BD6.svg)](https://pi.dev/packages/pi-provider-newapi)
-[![npm](https://img.shields.io/npm/v/pi-provider-newapi.svg)](https://www.npmjs.com/package/pi-provider-newapi)
+[![CI](https://github.com/liujigang/pi-provider-newapi/actions/workflows/ci.yml/badge.svg)](https://github.com/liujigang/pi-provider-newapi/actions/workflows/ci.yml)
+[![pi package catalog](https://img.shields.io/badge/pi-package%20catalog-5B5BD6.svg)](https://pi.dev/packages/pi-newapi)
+[![npm](https://img.shields.io/npm/v/pi-newapi.svg)](https://www.npmjs.com/package/pi-newapi)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![社区 | Linux.do](https://img.shields.io/badge/社区-Linux.do-blue.svg)](https://linux.do/)
 
@@ -18,20 +18,20 @@
 
 凭据始终由 pi 管理。扩展不会把 API Key 写入自身配置、模型定义、日志或缓存目录。
 
-**[English README](https://github.com/ttimasdf/pi-provider-newapi/blob/main/README.md)**
+**[English README](https://github.com/liujigang/pi-provider-newapi/blob/main/README.md)**
 
 ## 安装
 
 从 npm 安装：
 
 ```bash
-pi install npm:pi-provider-newapi
+pi install npm:pi-newapi
 ```
 
 也可以直接从 GitHub 安装：
 
 ```bash
-pi install git:github.com/ttimasdf/pi-provider-newapi
+pi install git:github.com/liujigang/pi-provider-newapi
 ```
 
 ## 快速上手
